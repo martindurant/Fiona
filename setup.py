@@ -198,7 +198,8 @@ if source_is_repo and "clean" not in sys.argv:
         Extension('fiona._crs', ['fiona/_crs.pyx'], **ext_options),
         Extension('fiona._drivers', ['fiona/_drivers.pyx'], **ext_options),
         Extension('fiona._err', ['fiona/_err.pyx'], **ext_options),
-        Extension('fiona.ogrext', ['fiona/ogrext.pyx'], **ext_options)])
+        Extension('fiona.ogrext', ['fiona/ogrext.pyx'], **ext_options),
+        Extension('fiona._ingest', ['fiona/_ingest.pyx'], **ext_options)])
 
 # If there's no manifest template, as in an sdist, we just specify .c files.
 elif "clean" not in sys.argv:

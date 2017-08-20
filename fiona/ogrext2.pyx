@@ -7,6 +7,7 @@ import json
 import locale
 import logging
 import os
+import numpy as np
 import warnings
 import math
 import uuid
@@ -19,6 +20,8 @@ from fiona._geometry cimport (
     GeomBuilder, OGRGeomBuilder, geometry_type_code,
     normalize_geometry_type_code)
 from fiona._err cimport exc_wrap_pointer
+from fiona._ingest cimport ogr_to_buffer, buffer_to_geom
+include "_geos.pxi"
 
 from fiona._err import cpl_errs
 from fiona._geometry import GEOMETRY_TYPES
@@ -495,6 +498,33 @@ cdef class Session:
         if self.cogr_layer == NULL:
             raise ValueError("Null layer")
         return ogrext2.OGR_L_GetFeatureCount(self.cogr_layer, 0)
+
+    def geom_array(self):
+        from shapely import geos
+        cdef void * cogr_feature
+        cdef void * cogr_geometry
+        cdef int i = 0
+        cdef GEOSContextHandle_t geos_context_handle = get_geos_context_handle()
+        cdef GEOSWKBReader * reader = GEOSWKBReader_create_r(geos_context_handle)
+        print(<int>geos_context_handle, <int>reader)
+        if reader == NULL:
+            raise RuntimeError('Creating WKB reader failed')
+        return
+
+        # in future pass in pre-allocated array
+        out = np.empty(self.get_length(), np.int64)
+        while True:
+            cogr_feature = ogrext2.OGR_L_GetNextFeature(self.cogr_layer)
+            if cogr_feature == NULL:
+                break
+            cogr_geometry = ogrext2.OGR_F_GetGeometryRef(cogr_feature)
+            # buffer is a global in _ingest
+            ogr_to_buffer(cogr_geometry)
+            geom = buffer_to_geom(geos_context_handle, reader)
+            out[i] = <int>geom
+            i += 1
+        GEOSWKBReader_destroy_r(geos_context_handle, reader)
+        return out
 
     def get_driver(self):
         cdef void *cogr_driver = ogrext2.GDALGetDatasetDriver(self.cogr_ds)
